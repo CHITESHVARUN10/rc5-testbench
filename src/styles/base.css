@@ -1,0 +1,258 @@
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--color-paper);
+    /* Paper grain. Kept on the canvas so opaque panels stay crisp. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.05'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  figure,
+  blockquote,
+  dl,
+  dd {
+    margin: 0;
+  }
+
+  ul,
+  ol {
+    margin: 0;
+    padding: 0;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+    margin: 0;
+  }
+
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+  }
+
+  table {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  /*
+    Range inputs are drawn as instrument faders: a hairline track and a tall rectangular thumb.
+    Native appearance is removed, so focus and hover states have to be provided explicitly below.
+  */
+  input[type='range'] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 22px;
+    background: transparent;
+    cursor: ew-resize;
+  }
+
+  input[type='range']::-webkit-slider-runnable-track {
+    height: 2px;
+    background: var(--color-rule-2);
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 13px;
+    height: 20px;
+    margin-top: -9px;
+    border-radius: var(--radius-hair);
+    background: var(--color-ink);
+  }
+
+  input[type='range']:hover::-webkit-slider-thumb {
+    background: var(--color-signal-ink);
+  }
+
+  input[type='range']::-moz-range-track {
+    height: 2px;
+    background: var(--color-rule-2);
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: 13px;
+    height: 20px;
+    border: none;
+    border-radius: var(--radius-hair);
+    background: var(--color-ink);
+  }
+
+  input[type='range']:hover::-moz-range-thumb {
+    background: var(--color-signal-ink);
+  }
+
+  input[type='range']:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+    font-size: 0.95em;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  svg {
+    display: block;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--color-rule);
+    margin: 0;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-signal-ink);
+    outline-offset: 2px;
+    border-radius: var(--radius-hair);
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Modal dialogs: one authored overlay treatment, no blur anywhere in the interface. */
+  dialog {
+    padding: 0;
+    border: 1px solid var(--color-rule-2);
+    border-radius: var(--radius-hair);
+    background: var(--color-sheet);
+    color: var(--color-ink);
+    box-shadow: var(--shadow-overlay);
+    max-width: min(32rem, calc(100vw - 2rem));
+    width: 100%;
+  }
+
+  dialog::backdrop {
+    background: oklch(0.3 0.012 75 / 0.34);
+  }
+
+  ::selection {
+    background: var(--color-signal-wash);
+    color: var(--color-ink);
+  }
+
+  ::placeholder {
+    color: var(--color-ink-4);
+    opacity: 1;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-rule-2) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--color-rule-2);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: var(--radius-pill);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-rule-3);
+  }
+
+  /* iOS Safari zooms any control under 16px. */
+  @media (max-width: 639px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}
+
+/* Motion preference, set on <html> by the settings store. */
+html[data-motion='none'] *,
+html[data-motion='none'] *::before,
+html[data-motion='none'] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+html[data-motion='reduced'] *,
+html[data-motion='reduced'] *::before,
+html[data-motion='reduced'] *::after {
+  animation-duration: 100ms !important;
+  transition-duration: 100ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+    background-image: none;
+  }
+
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  [data-print-block] {
+    break-inside: avoid;
+  }
+}

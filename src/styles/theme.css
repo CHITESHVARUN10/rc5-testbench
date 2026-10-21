@@ -1,0 +1,124 @@
+@import 'tailwindcss';
+
+/*
+  RC5 CipherLab — design tokens.
+
+  Instrument paper: warm-paper canvas, ink type, hairlines for structure, and one oxide-orange
+  signal that appears only on primary actions and the selected data series.
+
+  Namespaces are reset so only this vocabulary exists. There is no default palette to reach for,
+  no gradient, no blur, no second radius, and exactly one shadow (overlays).
+*/
+
+@theme {
+  --color-*: initial;
+  --font-*: initial;
+  --text-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --animate-*: initial;
+
+  /* surfaces: paper (canvas) → sheet (raised) → well (recessed) */
+  --color-paper: oklch(0.965 0.008 85);
+  --color-sheet: oklch(0.988 0.004 85);
+  --color-well: oklch(0.938 0.009 82);
+  --color-shade: oklch(0.906 0.01 82);
+
+  /* ink weights: 1 = primary text, 2 = secondary, 3 = labels and units, 4 = disabled only */
+  --color-ink: oklch(0.22 0.012 75);
+  --color-ink-2: oklch(0.4 0.012 76);
+  --color-ink-3: oklch(0.45 0.01 78);
+  --color-ink-4: oklch(0.6 0.008 80);
+
+  /* rules */
+  --color-rule: oklch(0.86 0.01 78);
+  --color-rule-2: oklch(0.78 0.012 78);
+  --color-rule-3: oklch(0.62 0.012 78);
+
+  /* signal: primary action + selected series. Never decorative.
+     `signal` is for strokes and marks; `signal-ink` is the fill whenever text sits on top, and
+     `signal-deep` is its pressed and hover counterpart. */
+  --color-signal: oklch(0.52 0.17 35);
+  --color-signal-ink: oklch(0.43 0.16 35);
+  --color-signal-deep: oklch(0.36 0.14 35);
+  --color-signal-wash: oklch(0.94 0.035 40);
+
+  /* status: always paired with a glyph and a word, never color alone */
+  --color-ok: oklch(0.45 0.1 155);
+  --color-ok-wash: oklch(0.94 0.03 155);
+  --color-warn: oklch(0.47 0.11 70);
+  --color-warn-wash: oklch(0.95 0.04 80);
+  --color-err: oklch(0.47 0.19 25);
+  --color-err-wash: oklch(0.94 0.03 25);
+
+  /* chart series: ink-first, differentiated by value and hatch pattern, not hue alone */
+  --color-series-1: oklch(0.22 0.012 75);
+  --color-series-2: oklch(0.5 0.012 265);
+  --color-series-3: oklch(0.7 0.008 80);
+  --color-series-4: oklch(0.52 0.17 35);
+
+  /* type */
+  --font-sans: 'Instrument Sans Variable', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono--font-feature-settings: 'tnum' 1, 'zero' 1;
+
+  --text-label: 0.6875rem;
+  --text-label--line-height: 1;
+  --text-label--letter-spacing: 0.08em;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.45;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.55;
+  --text-read: 1rem;
+  --text-read--line-height: 1.7;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.35;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 1.2;
+  --text-xl--letter-spacing: -0.01em;
+  --text-2xl: 2rem;
+  --text-2xl--line-height: 1.1;
+  --text-2xl--letter-spacing: -0.015em;
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.02em;
+
+  /* geometry: one corner radius for everything */
+  --radius-hair: 2px;
+  --radius-pill: 999px;
+
+  /* elevation: overlays only. Surfaces separate by lightness and hairlines. */
+  --shadow-overlay: 0 1px 0 0 var(--color-rule), 0 18px 40px -20px oklch(0.22 0.012 75 / 0.3);
+
+  /* motion: short, decelerating, functional */
+  --ease-instrument: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-rise: rise 200ms var(--ease-instrument) both;
+  --animate-sweep: sweep 1100ms linear infinite;
+  --animate-blink: blink 900ms steps(2, start) infinite;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
