@@ -9,7 +9,7 @@ import type { TimingSummary } from './stats'
  *
  * A run streams its samples as they are taken, so the interface can show the running coefficient of
  * variation while the measurement is still in progress. Watching the noise settle is the point of
- * the Benchmark Lab: a number that appears only at the end hides how much it should be trusted.
+ * the interface: a number that appears only at the end hides how much it should be trusted.
  */
 
 export type BenchTarget = 'encrypt' | 'decrypt' | 'both'
@@ -100,16 +100,6 @@ export interface BenchRunResult {
   readonly methodologyVersion: string
 }
 
-export interface BenchProbeResult {
-  readonly runId: string
-  readonly estimatedTotalMs: number
-  readonly opsPerBatch: number
-  readonly nsPerOp: number
-  readonly timerResolutionMs: number
-  readonly blocks: number
-  readonly bytesProcessed: number
-}
-
 export interface BenchProgress {
   readonly phase: 'prepare' | 'warmup' | 'measure' | 'verify'
   readonly configIndex: number
@@ -120,12 +110,10 @@ export interface BenchProgress {
 }
 
 export type BenchRequest =
-  | { readonly type: 'probe'; readonly runId: string; readonly spec: BenchSpec }
   | { readonly type: 'start'; readonly runId: string; readonly name: string; readonly spec: BenchSpec }
   | { readonly type: 'cancel'; readonly runId: string }
 
 export type BenchEvent =
-  | { readonly type: 'probe-result'; readonly result: BenchProbeResult }
   | { readonly type: 'pilot'; readonly runId: string; readonly estimateMs: number; readonly opsPerBatch: number }
   | { readonly type: 'progress'; readonly runId: string; readonly progress: BenchProgress }
   | { readonly type: 'sample'; readonly runId: string; readonly configIndex: number; readonly target: 'encrypt' | 'decrypt'; readonly sample: BenchSample }

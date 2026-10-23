@@ -115,7 +115,7 @@ function runCipher(
   if (input.length > MAX_INPUT_BYTES) {
     throw new Rc5Error(
       'payload-too-large',
-      `This input is ${input.length} bytes; the interactive limit is ${MAX_INPUT_BYTES} bytes (${Math.floor(MAX_INPUT_BYTES / 1024)} KiB). Use the Benchmark Lab to process large payloads.`,
+      `This input is ${input.length} bytes; the interactive limit is ${MAX_INPUT_BYTES} bytes (${Math.floor(MAX_INPUT_BYTES / 1024)} KiB). Shorten the message to encrypt it here.`,
       { inputBytes: input.length, limit: MAX_INPUT_BYTES },
     )
   }

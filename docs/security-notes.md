@@ -24,12 +24,10 @@ Four kinds of statement are kept apart everywhere in the interface:
 - It does not display a "secure" verdict for any configuration, based on rounds, key length or speed.
 - It does not compute a numerical security score. No defensible methodology for one was available, so
   inventing a percentage would have been worse than having none.
-- It does not rank configurations that were measured under different conditions, and it does not rank
-  64-bit results against 32-bit ones, because their arithmetic paths are not comparable.
+- It does not compare times across different message sizes without stating the size, and it marks
+  64-bit timings as not comparable with 32-bit ones, because their arithmetic paths differ.
 - It does not store, log, export or place in a URL any plaintext, secret key or derived round key. The
-  round key table is visible only behind an explicit reveal and exists in memory only.
-- It does not present an estimate as a measurement. The Scenario Planner labels every component with
-  its origin.
+  round key table is never displayed at all.
 
 ## What the literature says
 

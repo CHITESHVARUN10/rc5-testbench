@@ -4,7 +4,7 @@ import { EmptyState } from '@/components/ui/Feedback'
 
 export function NotFoundPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-10 lg:space-y-12">
       <PageHeader
         index="—"
         category="Not found"

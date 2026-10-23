@@ -9,6 +9,8 @@ import { cn } from '@/lib/cn'
  * because nothing in this interface animates for its own sake. The setting is applied as a data
  * attribute on the document element and read by CSS, so it also governs animations that no component
  * controls.
+ *
+ * Two tones: the control sits on the dark chassis in the rail and on paper in the methodology page.
  */
 
 const MOTION_OPTIONS: ReadonlyArray<{ value: MotionPreference; label: string; hint: string }> = [
@@ -17,16 +19,43 @@ const MOTION_OPTIONS: ReadonlyArray<{ value: MotionPreference; label: string; hi
   { value: 'none', label: 'None', hint: 'No transitions or animation anywhere.' },
 ]
 
-export function MotionControl({ className }: { className?: string }) {
+export function MotionControl({
+  className,
+  tone = 'paper',
+  showHint = true,
+}: {
+  className?: string
+  tone?: 'paper' | 'chassis'
+  showHint?: boolean
+}) {
   const motion = useSettings((state) => state.motion)
   const setMotion = useSettings((state) => state.setMotion)
+  const onChassis = tone === 'chassis'
 
   return (
     <fieldset className={cn('space-y-2', className)}>
-      <legend className="mb-1.5 font-mono text-label uppercase text-ink-4">Motion</legend>
-      <div className="flex rounded-hair border border-rule-2 bg-sheet">
+      <legend
+        className={cn(
+          'mb-1.5 font-mono text-label uppercase',
+          onChassis ? 'text-chassis-3' : 'text-ink-4',
+        )}
+      >
+        Motion
+      </legend>
+      <div
+        className={cn(
+          'flex rounded-hair border',
+          onChassis ? 'border-chassis-rule bg-chassis-lift' : 'border-rule-2 bg-sheet',
+        )}
+      >
         {MOTION_OPTIONS.map((option, index) => (
-          <div key={option.value} className={cn('flex-1', index > 0 && 'border-l border-rule-2')}>
+          <div
+            key={option.value}
+            className={cn(
+              'flex-1',
+              index > 0 && (onChassis ? 'border-l border-chassis-rule' : 'border-l border-rule-2'),
+            )}
+          >
             <label className="flex min-h-9 cursor-pointer items-center justify-center px-2 py-1.5">
               <input
                 type="radio"
@@ -39,7 +68,13 @@ export function MotionControl({ className }: { className?: string }) {
               <span
                 className={cn(
                   'pointer-events-none font-mono text-label uppercase',
-                  motion === option.value ? 'text-ink' : 'text-ink-3',
+                  motion === option.value
+                    ? onChassis
+                      ? 'text-chassis-ink'
+                      : 'text-ink'
+                    : onChassis
+                      ? 'text-chassis-3'
+                      : 'text-ink-3',
                 )}
               >
                 {option.label}
@@ -48,9 +83,16 @@ export function MotionControl({ className }: { className?: string }) {
           </div>
         ))}
       </div>
-      <p className="text-label leading-snug text-ink-4">
-        {MOTION_OPTIONS.find((option) => option.value === motion)?.hint}
-      </p>
+      {showHint ? (
+        <p
+          className={cn(
+            'text-label leading-snug',
+            onChassis ? 'text-chassis-3' : 'text-ink-4',
+          )}
+        >
+          {MOTION_OPTIONS.find((option) => option.value === motion)?.hint}
+        </p>
+      ) : null}
     </fieldset>
   )
 }

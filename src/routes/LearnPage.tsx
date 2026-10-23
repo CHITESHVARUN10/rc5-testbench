@@ -34,7 +34,7 @@ export function LearnPage() {
   const specs = useSpecItems()
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
       <PageHeader
         index="02"
         category="Reference"
@@ -58,7 +58,7 @@ export function LearnPage() {
               </p>
               <p>
                 That parameterisation is the reason RC5 is useful for teaching. A reader can change one
-                parameter and watch what happens, which is what the Benchmark Lab in this tool is for.
+                parameter and watch what happens, which is what the Simulator in this tool is for.
                 It is also the reason RC5 needs care: the same freedom that makes it instructive means a
                 configuration can be chosen badly, and picking a large word size or a long key does not
                 by itself produce a strong cipher.
@@ -206,10 +206,9 @@ export function LearnPage() {
               </ul>
               <p>
                 Two practical consequences. First, key expansion is not free: it costs about as much as
-                encrypting a short message, which is why the Benchmark Lab times it separately and why
-                the Simulator reports it. Second, the expansion is deterministic and invertible in
-                neither direction, but the round keys are derived from the secret key, which is why this
-                tool hides the S table behind an explicit reveal and never exports it.
+                encrypting a short message, which is why the measurement step times it separately. Second, the
+                expansion is deterministic and cannot be reversed, but the round keys are derived from
+                the secret key, which is why this tool never displays or exports them.
               </p>
             </Prose>
           </section>

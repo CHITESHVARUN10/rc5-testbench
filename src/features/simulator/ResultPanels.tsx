@@ -1,48 +1,25 @@
 import { useState } from 'react'
 
-import { getTimerResolutionMs } from '@/lib/env'
-import { formatConfigLabel, formatLatency, formatMilliseconds } from '@/lib/format'
-import { blockSizeBytes } from '@/lib/rc5/constants'
+import { formatByteCount, formatConfigLabel, formatLatency, formatPercent } from '@/lib/format'
+import {
+  MIN_MEASURE_PAYLOAD_BYTES,
+  measurementKey,
+  type Measurement,
+} from '@/lib/measurement'
 import { PADDING_LABELS } from '@/lib/rc5/constants'
-import { cn } from '@/lib/cn'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui/Button'
 import { CodeWell, CopyButton, DownloadButton } from '@/components/ui/Code'
-import { DataTable, StatusFlag, Badge } from '@/components/ui/Data'
-import { CheckboxField, TextArea } from '@/components/ui/Form'
-import { InlineError, Notice } from '@/components/ui/Feedback'
-import { Disclosure } from '@/components/ui/Overlay'
-import { Rule, Stack, StackHead, StackRow, Well } from '@/components/ui/Surface'
+import { Readout, ReadoutCell, ReadoutGrid, StatusFlag, Badge } from '@/components/ui/Data'
+import { InlineError, Notice, ProgressBar } from '@/components/ui/Feedback'
+import { Stack, StackHead, StackRow, Well } from '@/components/ui/Surface'
 import { Hint, Label, Meta } from '@/components/ui/Text'
+import {
+  cancelMeasurement,
+  measureConfiguration,
+  useMeasurementRun,
+} from '@/state/benchmark.store'
+import { useMeasurements } from '@/state/measurements.store'
 import type { SimulatorState } from './useSimulator'
-
-/**
- * A single measured operation, reported honestly.
- *
- * Browsers coarsen `performance.now()` as a side-channel mitigation, commonly to 100 µs per step. A
- * 15-byte encryption finishes well inside one step, so the honest answer is that this browser cannot
- * resolve it — not "0 ns", and not a number that implies precision the clock does not have. This is
- * precisely the limitation the Benchmark Lab works around by timing batches.
- */
-function describeSingleTiming(elapsedNs: number): { value: string; note: string } {
-  const resolutionMs = getTimerResolutionMs()
-  const resolutionNs = resolutionMs > 0 ? resolutionMs * 1e6 : 0
-  const belowResolution = elapsedNs <= 0 || (resolutionNs > 0 && elapsedNs < resolutionNs)
-
-  if (belowResolution) {
-    return {
-      value: resolutionMs > 0 ? `< ${formatMilliseconds(resolutionMs)}` : 'Below resolution',
-      note:
-        'This operation finished inside one timer step, so this browser cannot resolve its duration. Batching many operations per sample is how the Benchmark Lab measures work this short.',
-    }
-  }
-
-  return {
-    value: formatLatency(elapsedNs),
-    note: `One timing from one call in the interface thread, against a timer that steps in ${
-      resolutionMs > 0 ? formatMilliseconds(resolutionMs) : 'unknown'
-    }. A single sample carries no statistics: use the Benchmark Lab for anything you intend to compare.`,
-  }
-}
 
 /**
  * Result panels.
@@ -132,7 +109,6 @@ export function VerificationPanel({ sim }: { sim: SimulatorState }) {
                   ? `${formatConfigLabel(sim.encrypted.config)} · ${PADDING_LABELS[sim.encrypted.padding]}`
                   : ''}
               </Meta>
-              <Meta>{describeSingleTiming(verified.elapsedNs).value} for this one operation</Meta>
             </div>
 
             {sim.verifiedIsStale ? (
@@ -164,13 +140,16 @@ export function VerificationPanel({ sim }: { sim: SimulatorState }) {
             ) : (
               <Notice tone="warning" title="The recovered bytes do not match the input">
                 <p>
-                  The first difference is at byte {((verified.firstDifference ?? 0) + 1).toLocaleString('en-US')}{' '}
-                  (counting from 1). A mismatch here normally means the key differs from the one used to
-                  encrypt, or that the word size, round count or block handling has changed since.
+                  The first difference is at byte{' '}
+                  {((verified.firstDifference ?? 0) + 1).toLocaleString('en-US')} (counting from 1). A
+                  mismatch here normally means the key differs from the one used to encrypt, or that the
+                  word size, round count or block handling has changed since.
                 </p>
                 <p className="mt-2">
                   Recovered bytes:{' '}
-                  <span className="font-mono text-ink">{verified.recoveredHex.slice(0, 64) || '(none)'}</span>
+                  <span className="font-mono text-ink">
+                    {verified.recoveredHex.slice(0, 64) || '(none)'}
+                  </span>
                 </p>
               </Notice>
             )}
@@ -186,162 +165,139 @@ export function VerificationPanel({ sim }: { sim: SimulatorState }) {
   )
 }
 
-export function DecryptPanel({ sim }: { sim: SimulatorState }) {
+/**
+ * The step that produces a comparison.
+ *
+ * The recorded time is on a generated payload of the same size as the message above, not on the
+ * message itself: the same bytes are encrypted thousands of times, and the plaintext never needs to
+ * leave this component. The median is reported because a single timing on this clock is noise.
+ */
+export function MeasurePanel({ sim }: { sim: SimulatorState }) {
+  const status = useMeasurementRun((state) => state.status)
+  const progress = useMeasurementRun((state) => state.progress)
+  const error = useMeasurementRun((state) => state.error)
+  const measurements = useMeasurements((state) => state.measurements)
+  const add = useMeasurements((state) => state.add)
+
+  const [outcome, setOutcome] = useState<Measurement | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+
+  const busy = status === 'running' || status === 'cancelling'
+  const fromMessage = sim.plaintextByteCount > 0
+  const payloadBytes = fromMessage
+    ? Math.max(sim.plaintextByteCount, MIN_MEASURE_PAYLOAD_BYTES)
+    : 64
+
+  const alreadyMeasured = measurements.some(
+    (row) => measurementKey(row.config, row.payloadBytes) === measurementKey(sim.config, payloadBytes),
+  )
+
+  async function handleMeasure() {
+    setMessage(null)
+    const result = await measureConfiguration(sim.config, payloadBytes)
+    if (!result) return
+    setOutcome(result)
+    setMessage(add(result).message)
+  }
+
+  const done = progress ? progress.done : 0
+  const total = progress ? progress.total : 0
+
   return (
     <Stack>
       <StackHead
         index="03.5"
-        title="Decrypt a ciphertext"
-        note="including one you did not produce here"
+        title="Measure this configuration"
+        note="the step that feeds the comparison"
       />
       <StackRow className="space-y-4">
-        <div className="space-y-2">
-          <label htmlFor="decrypt-input">
-            <Label>Ciphertext to decrypt</Label>
-          </label>
-          <TextArea
-            id="decrypt-input"
-            mono
-            rows={3}
-            value={sim.decryptInput}
-            onChange={(event) => sim.setDecryptInput(event.target.value)}
-            placeholder="Paste hex produced by this configuration"
-          />
-          <Hint>
-            Decrypting runs the padding check as well as the cipher, so an error here means either the
-            key or the configuration is wrong, or the bytes were altered.
-          </Hint>
+        <p className="max-w-[68ch] text-sm text-ink-2">
+          Time encryption and decryption of a {formatByteCount(payloadBytes)} message under{' '}
+          {formatConfigLabel(sim.config)}
+          {fromMessage ? ' — the size of the message above.' : ' — the default size, since the message is empty.'}{' '}
+          The work runs in a worker: a warm-up, then many repeated operations in batches, and the
+          median of those samples is reported.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={handleMeasure} disabled={busy}>
+            {busy ? 'Measuring…' : 'Measure this configuration'}
+          </Button>
+          {busy ? (
+            <Button variant="ghost" onClick={cancelMeasurement}>
+              Cancel
+            </Button>
+          ) : null}
+          <ButtonLink to="/compare" variant="secondary" glyphAfter="arrow-right">
+            Open the comparison
+          </ButtonLink>
         </div>
 
-        <Button variant="secondary" onClick={sim.decryptPasted} disabled={sim.decryptInput.trim().length === 0}>
-          Decrypt this ciphertext
-        </Button>
+        {busy ? (
+          <div className="space-y-2">
+            <ProgressBar
+              value={done}
+              max={total || 1}
+              label="Measurement progress"
+              className="max-w-md"
+            />
+            <Hint>
+              {total > 0
+                ? `${Math.round(done).toLocaleString('en-US')} of ${Math.round(total).toLocaleString('en-US')} samples`
+                : 'Preparing the workload'}
+              {progress ? ` · ${progress.target}` : ''}
+            </Hint>
+          </div>
+        ) : null}
 
-        {sim.decrypted ? (
-          sim.decrypted.error ? (
-            <Notice tone="warning" title="This ciphertext could not be decrypted">
-              <p className="font-mono text-sm text-ink">{sim.decrypted.error}</p>
-            </Notice>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <StatusFlag status="verified" />
-                <Meta>{sim.decrypted.byteLength} bytes recovered</Meta>
-                <Meta>{describeSingleTiming(sim.decrypted.elapsedNs).value}</Meta>
-              </div>
-              <CodeWell
-                label="Recovered plaintext"
-                hex={sim.decrypted.hex}
-                emptyText="The ciphertext decrypted to nothing."
-                actions={<CopyButton text={sim.decrypted.text ?? sim.decrypted.hex} compact />}
-                footer={
-                  sim.decrypted.text !== null ? (
-                    <Meta>Reads as UTF-8 text: “{sim.decrypted.text}”</Meta>
-                  ) : (
-                    <Meta>Not valid UTF-8, so the bytes are shown as hex.</Meta>
-                  )
-                }
+        {status === 'failed' && error ? <InlineError>{error}</InlineError> : null}
+
+        {alreadyMeasured && !busy ? (
+          <Hint>
+            This configuration and message size are already in the comparison. Measuring again replaces
+            that row with the new result.
+          </Hint>
+        ) : null}
+
+        {outcome ? (
+          <div className="space-y-3">
+            <ReadoutGrid>
+              <ReadoutCell>
+                <Readout label="Encrypt" value={formatLatency(outcome.encryptNs)} size="lg" />
+              </ReadoutCell>
+              <ReadoutCell>
+                <Readout label="Decrypt" value={formatLatency(outcome.decryptNs)} size="lg" />
+              </ReadoutCell>
+              <ReadoutCell>
+                <Readout
+                  label="Key setup"
+                  value={outcome.keySetupNs > 0 ? formatLatency(outcome.keySetupNs) : '—'}
+                />
+              </ReadoutCell>
+              <ReadoutCell>
+                <Readout
+                  label="Spread"
+                  value={formatPercent(outcome.spreadPercent)}
+                  note="variation across samples"
+                />
+              </ReadoutCell>
+            </ReadoutGrid>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <StatusFlag
+                status={outcome.correctness === 'verified' ? 'verified' : 'mismatch'}
               />
+              <Meta>{outcome.samples} samples</Meta>
+              <Meta>{formatByteCount(outcome.payloadBytes)} message</Meta>
+              <Meta>timer steps in {outcome.timerResolutionMs.toFixed(3)} ms</Meta>
             </div>
-          )
+            {message ? <Hint>{message}</Hint> : null}
+            <Hint>
+              This is one configuration. Add another by changing the parameters above and measuring
+              again, then read them side by side in Compare.
+            </Hint>
+          </div>
         ) : null}
       </StackRow>
     </Stack>
-  )
-}
-
-export function AdvancedPanel({ sim }: { sim: SimulatorState }) {
-  const [revealKeys, setRevealKeys] = useState(false)
-  const encrypted = sim.encrypted
-
-  return (
-    <Stack>
-      <StackHead index="03.6" title="Advanced" note="timing, round keys, and the round trace" />
-      <StackRow className="space-y-5">
-        <div className="space-y-2">
-          <Label>Single operation timing</Label>
-          <p className="font-mono text-xl tabular-nums text-ink">
-            {encrypted ? describeSingleTiming(encrypted.elapsedNs).value : '—'}
-          </p>
-          <Hint>
-            {encrypted
-              ? describeSingleTiming(encrypted.elapsedNs).note
-              : 'Encrypt a message to take one timing. This is a single sample, not a benchmark.'}
-          </Hint>
-        </div>
-
-        <Rule />
-
-        <Disclosure summary="Round-by-round values" note="first block only">
-          {sim.trace ? (
-            <div className="space-y-3">
-              <Meta>
-                {formatConfigLabel(sim.trace.config)} · block {sim.trace.a0} {sim.trace.b0}
-              </Meta>
-              <DataTable
-                caption="Round-by-round intermediate values for the first block"
-                stickyHeader
-                columns={[
-                  { key: 'round', header: 'Round', align: 'right', render: (step) => <span className="text-ink-4">{step.round}</span> },
-                  { key: 'aBefore', header: 'A before', align: 'right', render: (step) => step.aBefore },
-                  { key: 'bBefore', header: 'B before', align: 'right', render: (step) => step.bBefore },
-                  { key: 'rotA', header: 'rot A', align: 'right', render: (step) => <span className="text-ink-3">{step.rotA}</span> },
-                  { key: 'aAfter', header: 'A after', align: 'right', render: (step) => step.aAfter },
-                  { key: 'rotB', header: 'rot B', align: 'right', render: (step) => <span className="text-ink-3">{step.rotB}</span> },
-                  { key: 'bAfter', header: 'B after', align: 'right', render: (step) => step.bAfter },
-                ]}
-                rows={sim.trace.steps.slice()}
-                getRowKey={(step) => String(step.round)}
-              />
-              <Hint>
-                Each round mixes A with B, rotates the result by the low bits of the other word, then adds
-                a round key. The rotation amount depends on the data, which is what makes RC5's rotations
-                data-dependent rather than fixed.
-              </Hint>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <Hint>{sim.traceError ?? 'The trace is computed from the current input and key.'}</Hint>
-              <Button variant="secondary" compact onClick={sim.requestTrace}>
-                Compute the trace
-              </Button>
-            </div>
-          )}
-        </Disclosure>
-
-        <Rule />
-
-        <div className="space-y-4">
-          <CheckboxField
-            label="Reveal the round keys derived from my key"
-            checked={revealKeys}
-            onChange={(event) => setRevealKeys(event.target.checked)}
-            hint="The expanded key table S is computed from the secret key. It is shown in memory only, is never saved, and is never included in an export. Revealing it reveals the key to anyone reading the screen."
-          />
-          {revealKeys && encrypted ? (
-            <CodeWell
-              label={`Round key table S — ${encrypted.scheduleHex.length} words`}
-              hex={encrypted.scheduleHex.join('')}
-              emptyText="Encrypt once to derive the schedule."
-              maxHeightClass="max-h-56"
-              footer={<Meta>Each word is {encrypted.config.w / 4} hex digits wide.</Meta>}
-            />
-          ) : revealKeys ? (
-            <Hint>Encrypt a message first: the table is derived during a real operation.</Hint>
-          ) : null}
-        </div>
-      </StackRow>
-    </Stack>
-  )
-}
-
-export function ConfigurationStamp({ sim }: { sim: SimulatorState }) {
-  const encrypted = sim.encrypted
-  return (
-    <div className={cn('flex flex-wrap items-center gap-x-4 gap-y-1')}>
-      <Meta>block {blockSizeBytes(sim.config.w)} B</Meta>
-      <Meta>{sim.config.r} rounds</Meta>
-      {encrypted ? <Meta>last run {formatConfigLabel(encrypted.config)}</Meta> : null}
-    </div>
   )
 }

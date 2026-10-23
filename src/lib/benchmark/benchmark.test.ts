@@ -2,11 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import { collectEnvironment, describeBrowser, describeOs } from '../env'
 import type { Rc5Config } from '../rc5/types'
-import { interpretGroups, isRankEligible, rankByMedian } from './interpret'
 import { generatePayload, payloadDigest } from './prepare'
-import type { BenchGroupResult, BenchSpec } from './protocol'
+import type { BenchSpec } from './protocol'
 import { BENCH_LIMITS } from './protocol'
-import { BenchmarkCancelled, probeBenchmark, runBenchmark } from './runner'
+import { BenchmarkCancelled, runBenchmark } from './runner'
 import {
   downsampleForDisplay,
   elapsedNs,
@@ -233,7 +232,7 @@ describe('benchmark runner', () => {
     }
   })
 
-  it('flags the BigInt path and does not rank it', async () => {
+  it('flags the BigInt path, whose timings are not comparable', async () => {
     const result = await runBenchmark(
       'run-5',
       'Wide words',
@@ -244,7 +243,6 @@ describe('benchmark runner', () => {
     expect(group.implPath).toBe('bigint')
     expect(group.correctnessStatus).toBe('verified')
     expect(group.warnings.some((warning) => warning.code === 'bigint-path')).toBe(true)
-    expect(isRankEligible(group)).toBe(false)
   })
 
   it('warns when a run has too few samples for p95', async () => {
@@ -302,138 +300,5 @@ describe('benchmark runner', () => {
     await expect(runBenchmark('run-13', 'Bad size', specWith({ payloadBytes: 0 }))).rejects.toThrowError(
       /at least 1/,
     )
-  })
-
-  it('probes a specification without running it', async () => {
-    const probe = await probeBenchmark(specWith({ measuredIterations: 1000 }))
-    expect(probe.blocks).toBe(8)
-    expect(probe.bytesProcessed).toBe(64)
-    expect(probe.opsPerBatch).toBeGreaterThanOrEqual(1)
-    expect(probe.nsPerOp).toBeGreaterThan(0)
-    expect(probe.estimatedTotalMs).toBeGreaterThan(0)
-  })
-})
-
-/* ------------------------------------------------------------------ interpretation */
-
-function groupWith(
-  overrides: {
-    config?: Rc5Config
-    target?: 'encrypt' | 'decrypt'
-    medianNs?: number
-    cvPercent?: number
-    implPath?: 'number' | 'bigint'
-    throughput?: number
-  } = {},
-): BenchGroupResult {
-  const config = overrides.config ?? { w: 32, r: 12, b: 16 }
-  const medianNs = overrides.medianNs ?? 1000
-  const cvPercent = overrides.cvPercent ?? 2
-  return {
-    config,
-    implPath: overrides.implPath ?? 'number',
-    target: overrides.target ?? 'encrypt',
-    payloadBytes: 4096,
-    blocks: 512,
-    bytesProcessed: 4096,
-    opsPerBatch: 64,
-    metrics: {
-      n: 100,
-      meanNs: medianNs * 1.01,
-      medianNs,
-      minNs: medianNs * 0.9,
-      maxNs: medianNs * 1.2,
-      stdDevNs: (medianNs * cvPercent) / 100,
-      p95Ns: medianNs * 1.15,
-      q1Ns: medianNs * 0.97,
-      q3Ns: medianNs * 1.04,
-      cvPercent,
-    },
-    throughputBytesPerSecond: overrides.throughput ?? 4096 / (medianNs / 1e9),
-    samplesNs: [medianNs],
-    rawSampleCount: 100,
-    correctnessStatus: 'verified',
-    warnings: [],
-    keySetupNs: 500,
-  }
-}
-
-describe('interpretation', () => {
-  it('says so when there is nothing to compare', () => {
-    expect(interpretGroups([])[0].kind).toBe('insufficient')
-    const single = interpretGroups([groupWith()])
-    expect(single[0].kind).toBe('insufficient')
-    expect(single[0].text).toContain('nothing to rank')
-  })
-
-  it('states a ranking when the gap exceeds the observed variation', () => {
-    const lines = interpretGroups([
-      groupWith({ config: { w: 32, r: 8, b: 16 }, medianNs: 500, cvPercent: 2 }),
-      groupWith({ config: { w: 32, r: 24, b: 16 }, medianNs: 1500, cvPercent: 2 }),
-    ])
-    const findings = lines.filter((line) => line.kind === 'finding').map((line) => line.text)
-    expect(findings.some((text) => text.includes('lowest median'))).toBe(true)
-    expect(findings.some((text) => text.includes('quicker than'))).toBe(true)
-    expect(findings.join(' ')).toContain('RC5-32/8/16')
-  })
-
-  it('refuses to rank two configurations that differ by less than the noise', () => {
-    const lines = interpretGroups([
-      groupWith({ config: { w: 32, r: 12, b: 16 }, medianNs: 1000, cvPercent: 12 }),
-      groupWith({ config: { w: 32, r: 13, b: 16 }, medianNs: 1040, cvPercent: 12 }),
-    ])
-    const variability = lines.filter((line) => line.kind === 'variability').map((line) => line.text)
-    expect(variability.some((text) => text.includes('does not establish'))).toBe(true)
-  })
-
-  it('describes a rounds sweep as rising with the round count', () => {
-    const lines = interpretGroups([
-      groupWith({ config: { w: 32, r: 8, b: 16 }, medianNs: 400 }),
-      groupWith({ config: { w: 32, r: 12, b: 16 }, medianNs: 600 }),
-      groupWith({ config: { w: 32, r: 16, b: 16 }, medianNs: 800 }),
-    ])
-    expect(lines.some((line) => line.text.includes('rose with the round count'))).toBe(true)
-  })
-
-  it('separates the BigInt path from the ranking and labels why', () => {
-    const lines = interpretGroups([
-      groupWith({ config: { w: 32, r: 12, b: 16 }, medianNs: 500 }),
-      groupWith({ config: { w: 64, r: 12, b: 16 }, medianNs: 9000, implPath: 'bigint' }),
-    ])
-    const exclusion = lines.find((line) => line.kind === 'exclusion')
-    expect(exclusion?.text).toContain('RC5-64/12/16')
-    expect(exclusion?.text).toContain('BigInt')
-  })
-
-  it('always carries the standing caveats about scope and security', () => {
-    const lines = interpretGroups([groupWith()])
-    const caveats = lines.filter((line) => line.kind === 'caveat').map((line) => line.text)
-    expect(caveats.length).toBe(2)
-    expect(caveats.join(' ')).toContain('microcontroller')
-    expect(caveats.join(' ')).toContain('not strength')
-  })
-
-  it('never turns a timing into a claim about security', () => {
-    const cases = [
-      [groupWith()],
-      [groupWith({ medianNs: 500 }), groupWith({ medianNs: 1500, config: { w: 32, r: 20, b: 16 } })],
-      [groupWith({ config: { w: 64, r: 12, b: 16 }, implPath: 'bigint' }), groupWith()],
-    ]
-    const forbidden = /\b(secure|security|safe|unsafe|stronger|strongest|weak|break|attack|recommend)/i
-    for (const groups of cases) {
-      for (const line of interpretGroups(groups)) {
-        if (line.kind === 'caveat' || line.kind === 'exclusion') continue
-        expect(line.text).not.toMatch(forbidden)
-        expect(line.text).toMatch(/\d/)
-      }
-    }
-  })
-
-  it('ranks by median and excludes non-comparable runs', () => {
-    const slower = groupWith({ medianNs: 900 })
-    const faster = groupWith({ medianNs: 300 })
-    const wide = groupWith({ medianNs: 10, implPath: 'bigint' })
-    const ranked = rankByMedian([slower, wide, faster])
-    expect(ranked.map((group) => group.metrics.medianNs)).toEqual([300, 900])
   })
 })

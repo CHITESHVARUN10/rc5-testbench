@@ -36,9 +36,10 @@ export interface BarGroupProps {
   readonly table: React.ReactNode
   readonly className?: string
   readonly height?: number
+  readonly tableVisible?: boolean
 }
 
-const MARGIN = { top: 22, right: 12, bottom: 48, left: 56 }
+const MARGIN = { top: 30, right: 12, bottom: 48, left: 56 }
 
 export function BarGroup({
   categories,
@@ -51,6 +52,7 @@ export function BarGroup({
   table,
   className,
   height = 280,
+  tableVisible = false,
 }: BarGroupProps) {
   const [ref, width] = useMeasuredWidth<HTMLDivElement>()
   const namespace = useId().replace(/:/g, '')
@@ -78,6 +80,7 @@ export function BarGroup({
   return (
     <ChartWithTable
       className={className}
+      tableVisible={tableVisible}
       label={ariaLabel}
       summary={summary}
       table={table}
@@ -186,13 +189,15 @@ export function BarGroup({
 
                 <text
                   x={-MARGIN.left + 4}
-                  y={-8}
+                  y={-15}
                   className="font-mono"
                   fontSize="10"
                   fill="var(--color-ink-4)"
                   letterSpacing="0.08em"
                 >
-                  {`${yLabel.toUpperCase()} · ${formatY(tickValues[0] ?? 0).unit}`}
+                  {`${yLabel.toUpperCase()} · ${
+                    formatY(tickValues.length > 0 ? Math.max(...tickValues) : 0).unit
+                  }`}
                 </text>
               </g>
             </svg>

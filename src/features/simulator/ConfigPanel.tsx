@@ -142,8 +142,7 @@ export function ConfigPanel() {
           <Notice tone="caution" title="64-bit words use a slower arithmetic path">
             In this implementation, 64-bit words are computed with arbitrary-precision integers, which
             costs many times more than the machine-integer arithmetic used at 16 and 32 bits. Encryption
-            here is correct, but its timing cannot be compared with the other word sizes, and the
-            Benchmark Lab keeps it out of rankings for that reason.
+            here is correct, but a 64-bit timing is not comparable with the other word sizes.
           </Notice>
         </StackRow>
       ) : null}

@@ -8,20 +8,15 @@ import { useSpecItems } from '@/components/shell/specs'
 import { useSettings } from '@/state/settings.store'
 import { ConfigPanel } from '@/features/simulator/ConfigPanel'
 import { MessagePanel } from '@/features/simulator/MessagePanel'
-import {
-  AdvancedPanel,
-  CiphertextPanel,
-  DecryptPanel,
-  VerificationPanel,
-} from '@/features/simulator/ResultPanels'
+import { CiphertextPanel, MeasurePanel, VerificationPanel } from '@/features/simulator/ResultPanels'
 import { useSimulator } from '@/features/simulator/useSimulator'
 
 /**
  * The Simulator.
  *
  * A work surface rather than a form: configuration on the left, the working column on the right, and
- * the results stacked in the order the workflow produces them — ciphertext first, then the round-trip
- * check, then the reverse direction, then the internals for anyone who wants them.
+ * the results stacked in the order the workflow produces them — ciphertext, then the round-trip check,
+ * then the measurement that feeds the comparison.
  */
 export function SimulatorPage() {
   const sim = useSimulator()
@@ -31,7 +26,7 @@ export function SimulatorPage() {
   const specs = useSpecItems([{ label: 'padding', value: PADDING_LABELS[padding] }])
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10 lg:space-y-12">
       <PageHeader
         index="03"
         category="Encryption"
@@ -51,8 +46,7 @@ export function SimulatorPage() {
           <MessagePanel sim={sim} onRequestClear={() => setConfirmClear(true)} />
           <CiphertextPanel sim={sim} />
           <VerificationPanel sim={sim} />
-          <DecryptPanel sim={sim} />
-          <AdvancedPanel sim={sim} />
+          <MeasurePanel sim={sim} />
         </div>
       </div>
 

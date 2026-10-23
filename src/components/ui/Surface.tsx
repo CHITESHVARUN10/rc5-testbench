@@ -46,7 +46,7 @@ export function Stack({ children, className }: { children: ReactNode; className?
 }
 
 export function StackRow({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('p-4 sm:p-5', className)}>{children}</div>
+  return <div className={cn('p-5 sm:p-6', className)}>{children}</div>
 }
 
 export function StackHead({
@@ -65,13 +65,13 @@ export function StackHead({
   return (
     <header
       className={cn(
-        'flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-b border-rule px-4 py-3 sm:px-5',
+        'flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-b border-rule px-5 py-3.5 sm:px-6',
         className,
       )}
     >
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
         {index ? <Meta className="text-ink-4">{index}</Meta> : null}
-        <h2 className="text-lg font-medium text-ink">{title}</h2>
+        <h2 className="text-lg font-semibold text-ink">{title}</h2>
         {note ? <span className="text-sm text-ink-3">{note}</span> : null}
       </div>
       {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
@@ -100,12 +100,12 @@ export function SectionHead({
 }) {
   const Heading = level === 3 ? 'h3' : 'h2'
   return (
-    <div className={cn('flex items-center gap-3', className)}>
+    <div className={cn('flex items-center gap-4', className)}>
       {index ? <Meta className="shrink-0 text-ink-4">{index}</Meta> : null}
       <Heading
         className={cn(
-          'shrink-0 font-medium text-ink',
-          level === 3 ? 'text-base' : 'text-xl',
+          'shrink-0 font-semibold text-ink',
+          level === 3 ? 'text-lg' : 'text-xl',
         )}
       >
         {title}

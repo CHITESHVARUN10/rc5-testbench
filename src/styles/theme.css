@@ -18,15 +18,16 @@
   --shadow-*: initial;
   --animate-*: initial;
 
-  /* surfaces: paper (canvas) → sheet (raised) → well (recessed) */
-  --color-paper: oklch(0.965 0.008 85);
-  --color-sheet: oklch(0.988 0.004 85);
-  --color-well: oklch(0.938 0.009 82);
-  --color-shade: oklch(0.906 0.01 82);
+  /* surfaces: paper (canvas) → sheet (raised) → well (recessed).
+     Sheet sits above paper, not beside it, so a panel reads as a document laid on the bench. */
+  --color-paper: oklch(0.972 0.007 85);
+  --color-sheet: oklch(0.995 0.003 85);
+  --color-well: oklch(0.943 0.009 82);
+  --color-shade: oklch(0.912 0.01 82);
 
   /* ink weights: 1 = primary text, 2 = secondary, 3 = labels and units, 4 = disabled only */
-  --color-ink: oklch(0.22 0.012 75);
-  --color-ink-2: oklch(0.4 0.012 76);
+  --color-ink: oklch(0.2 0.012 75);
+  --color-ink-2: oklch(0.38 0.012 76);
   --color-ink-3: oklch(0.45 0.01 78);
   --color-ink-4: oklch(0.6 0.008 80);
 
@@ -42,6 +43,16 @@
   --color-signal-ink: oklch(0.43 0.16 35);
   --color-signal-deep: oklch(0.36 0.14 35);
   --color-signal-wash: oklch(0.94 0.035 40);
+  /* the same signal, lifted for dark surfaces where the mid-tone would sit too close to the ground */
+  --color-signal-bright: oklch(0.74 0.15 42);
+
+  /* chassis: the instrument body. A deep warm ink that frames the paper bench. */
+  --color-chassis: oklch(0.215 0.013 68);
+  --color-chassis-lift: oklch(0.282 0.014 70);
+  --color-chassis-ink: oklch(0.955 0.005 85);
+  --color-chassis-2: oklch(0.735 0.009 78);
+  --color-chassis-3: oklch(0.605 0.01 78);
+  --color-chassis-rule: oklch(0.325 0.012 70);
 
   /* status: always paired with a glyph and a word, never color alone */
   --color-ok: oklch(0.45 0.1 155);
@@ -71,17 +82,18 @@
   --text-base--line-height: 1.55;
   --text-read: 1rem;
   --text-read--line-height: 1.7;
-  --text-lg: 1.125rem;
-  --text-lg--line-height: 1.35;
-  --text-xl: 1.5rem;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.4;
+  --text-lg--letter-spacing: -0.006em;
+  --text-xl: 1.375rem;
   --text-xl--line-height: 1.2;
-  --text-xl--letter-spacing: -0.01em;
-  --text-2xl: 2rem;
-  --text-2xl--line-height: 1.1;
-  --text-2xl--letter-spacing: -0.015em;
-  --text-display: 2.5rem;
-  --text-display--line-height: 1.05;
-  --text-display--letter-spacing: -0.02em;
+  --text-xl--letter-spacing: -0.014em;
+  --text-2xl: 1.875rem;
+  --text-2xl--line-height: 1.08;
+  --text-2xl--letter-spacing: -0.02em;
+  --text-display: 2.75rem;
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.028em;
 
   /* geometry: one corner radius for everything */
   --radius-hair: 2px;

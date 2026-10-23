@@ -11,8 +11,8 @@ import { Label } from '../ui/Text'
  * underneath. No centred stack, no display type carrying a marketing claim, and nothing here could be
  * lifted onto a different product unchanged.
  *
- * The category names what kind of page this is — reference, measurement, estimation, record — which is
- * how the tool actually differs from section to section.
+ * The title is the one place the type scale opens up. Everything under it returns to working size, so
+ * the page has a single point of arrival instead of a row of competing headings.
  */
 
 export interface PageHeaderProps {
@@ -37,18 +37,20 @@ export function PageHeader({
   aside,
 }: PageHeaderProps) {
   return (
-    <header className="space-y-5">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
-        <div className="min-w-0 space-y-3">
+    <header className="space-y-6">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-12">
+        <div className="min-w-0 max-w-[62ch] space-y-4">
           <div className="flex items-baseline gap-3">
-            <span className="font-mono text-label text-signal-ink">{index}</span>
-            <span className="h-px w-8 bg-rule-2" aria-hidden="true" />
+            <span className="font-mono text-label tabular-nums text-signal-ink">{index}</span>
+            <span className="h-px w-10 bg-rule-2" aria-hidden="true" />
             <Label>{category}</Label>
           </div>
-          <h1 className="text-2xl font-medium text-ink">{title}</h1>
-          <p className="max-w-[68ch] text-read text-ink-2">{lead}</p>
+          <h1 className="text-2xl font-semibold text-balance text-ink sm:text-display">{title}</h1>
+          <p className="max-w-[64ch] text-read text-ink-2">{lead}</p>
         </div>
-        {actions ? <div className="flex shrink-0 flex-wrap items-start gap-2">{actions}</div> : null}
+        {actions ? (
+          <div className="flex shrink-0 flex-wrap items-start gap-2 lg:pt-1">{actions}</div>
+        ) : null}
       </div>
       {specs && specs.length > 0 ? <SpecStrip items={specs} label={specsLabel} /> : null}
       {aside}

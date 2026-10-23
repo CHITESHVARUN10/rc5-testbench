@@ -205,7 +205,7 @@ export function DataTable<T>({
                 key={column.key}
                 scope="col"
                 className={cn(
-                  'border-b border-rule bg-sheet px-3 py-2 font-mono text-label uppercase text-ink-3',
+                  'border-b border-rule-2 bg-sheet px-3 py-2.5 font-mono text-label uppercase text-ink-2',
                   column.align === 'right' ? 'text-right' : 'text-left',
                   stickyHeader && 'sticky top-0 z-10',
                   column.className,
@@ -218,12 +218,15 @@ export function DataTable<T>({
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr key={getRowKey(row, index)} className="border-b border-rule last:border-b-0">
+            <tr
+              key={getRowKey(row, index)}
+              className="border-b border-rule transition-colors duration-150 ease-instrument last:border-b-0 hover:bg-well/55"
+            >
               {columns.map((column) => (
                 <td
                   key={column.key}
                   className={cn(
-                    'px-3 py-2 align-baseline',
+                    'px-3 py-2.5 align-baseline',
                     column.align === 'right' ? 'text-right' : 'text-left',
                     column.className,
                   )}

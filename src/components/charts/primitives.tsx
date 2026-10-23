@@ -9,7 +9,6 @@ import {
 
 import { cn } from '@/lib/cn'
 import { Button } from '../ui/Button'
-import { Label } from '../ui/Text'
 
 /**
  * Chart primitives.
@@ -96,6 +95,7 @@ export interface LegendEntry {
   readonly color: string
   readonly pattern: SeriesPattern
   readonly note?: string
+  readonly dashed?: boolean
 }
 
 export function ChartLegend({ entries, className }: { entries: readonly LegendEntry[]; className?: string }) {
@@ -222,38 +222,48 @@ export interface ChartWithTableProps {
   readonly table: ReactNode
   readonly legend?: ReactNode
   readonly className?: string
+  /** Show the chart and its table together. Used where the table is the explanation, not a fallback. */
+  readonly tableVisible?: boolean
 }
 
 /**
  * A chart with its tabular alternative. The toggle is a real control with pressed state, and the
  * table is the same data rather than a description of it.
  */
-export function ChartWithTable({ label, summary, chart, table, legend, className }: ChartWithTableProps) {
+export function ChartWithTable({
+  label,
+  summary,
+  chart,
+  table,
+  legend,
+  className,
+  tableVisible = false,
+}: ChartWithTableProps) {
   const [view, setView] = useState<'chart' | 'table'>('chart')
 
   return (
-    <figure className={cn('space-y-3', className)}>
-      <figcaption className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <Label>{label}</Label>
-          <p className="max-w-[76ch] text-sm text-ink-3">{summary}</p>
-        </div>
-        <div className="shrink-0">
-          <Button
-            compact
-            variant="ghost"
-            aria-pressed={view === 'table'}
-            onClick={() => setView(view === 'chart' ? 'table' : 'chart')}
-          >
-            {view === 'chart' ? 'Show table' : 'Show chart'}
-          </Button>
-        </div>
+    <figure aria-label={label} className={cn('space-y-4', className)}>
+      <figcaption className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+        <p className="max-w-[76ch] text-sm text-ink-3">{summary}</p>
+        {tableVisible ? null : (
+          <div className="shrink-0">
+            <Button
+              compact
+              variant="ghost"
+              aria-pressed={view === 'table'}
+              onClick={() => setView(view === 'chart' ? 'table' : 'chart')}
+            >
+              {view === 'chart' ? 'Show table' : 'Show chart'}
+            </Button>
+          </div>
+        )}
       </figcaption>
-      {view === 'chart' ? (
-        <div className="space-y-3">
+      {tableVisible || view === 'chart' ? (
+        <>
           {chart}
-          {legend}
-        </div>
+          {legend ? <div className="border-t border-rule pt-3">{legend}</div> : null}
+          {tableVisible ? <div className="pt-2">{table}</div> : null}
+        </>
       ) : (
         <div>{table}</div>
       )}

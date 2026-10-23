@@ -99,6 +99,20 @@ export function formatBytesTick(bytes: number): { value: string; unit: string } 
   return { value: trim(bytes / (1024 * 1024)), unit: 'MiB' }
 }
 
+/**
+ * A payload axis formatter that pins one unit for the whole scale. Per-value units are fine for a
+ * single readout and wrong for an axis: "256" and "16" on the same line cannot mean B and KiB.
+ */
+export function byteAxisFormatter(maxBytes: number): (bytes: number) => { value: string; unit: string } {
+  if (maxBytes >= 1024 * 1024) {
+    return (bytes) => ({ value: trim(bytes / (1024 * 1024)), unit: 'MiB' })
+  }
+  if (maxBytes >= 1024) {
+    return (bytes) => ({ value: trim(bytes / 1024), unit: 'KiB' })
+  }
+  return (bytes) => ({ value: String(Math.round(bytes)), unit: 'B' })
+}
+
 export function formatMicroTick(ns: number): { value: string; unit: string } {
   if (ns < 1000) return { value: trim(ns), unit: 'ns' }
   if (ns < 1e6) return { value: trim(ns / 1000), unit: 'µs' }

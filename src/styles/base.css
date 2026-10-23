@@ -15,7 +15,7 @@
     min-height: 100dvh;
     background-color: var(--color-paper);
     /* Paper grain. Kept on the canvas so opaque panels stay crisp. */
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.05'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.028'/%3E%3C/svg%3E");
     background-repeat: repeat;
     color: var(--color-ink);
     font-family: var(--font-sans);
@@ -145,8 +145,15 @@
     margin: 0;
   }
 
+  /* Focus is a machined bracket, not an alarm: ink on paper, paper on the chassis. Signal orange
+     stays reserved for actions and the selected series, so a focused field can never be misread as
+     an invalid one. */
+  :root {
+    --focus-ring: var(--color-ink);
+  }
+
   :focus-visible {
-    outline: 2px solid var(--color-signal-ink);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
     border-radius: var(--radius-hair);
   }

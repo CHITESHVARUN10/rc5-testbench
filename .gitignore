@@ -1,6 +1,7 @@
 node_modules
 dist
 coverage
+screenshots/
 *.local
 .DS_Store
 .vite

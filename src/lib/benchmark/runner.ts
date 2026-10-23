@@ -11,7 +11,6 @@ import {
   blocksFor,
   type BenchGroupResult,
   type BenchProgress,
-  type BenchProbeResult,
   type BenchRunResult,
   type BenchSample,
   type BenchSpec,
@@ -170,14 +169,31 @@ function measureKeySetupNs(
   key: Uint8Array,
   config: Rc5Config,
   now: () => number,
-  rounds = 200,
+  minimumNs = 1e6,
 ): number {
-  const startedAt = now()
+  // Warm the expansion before timing it. Without this pass the first group measured pays for the
+  // interpreter and the JIT, and reports a key setup several times slower than the same schedule
+  // measured a few hundred calls later.
+  let rounds = 200
   for (let i = 0; i < rounds; i++) {
     expandKey(key, config)
   }
-  const total = elapsedNs(startedAt, now())
-  return total > 0 ? total / rounds : 0
+
+  // Grow the batch until it spans at least a millisecond. A short expansion at a small word size can
+  // finish inside a single 100 µs clock step, and dividing that step by the batch would report zero.
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const startedAt = now()
+    for (let i = 0; i < rounds; i++) {
+      expandKey(key, config)
+    }
+    const total = elapsedNs(startedAt, now())
+    if (total >= minimumNs || attempt === 5) {
+      return total > 0 ? total / rounds : 0
+    }
+    rounds *= 4
+  }
+
+  return 0
 }
 
 function groupWarnings(
@@ -238,48 +254,6 @@ function groupWarnings(
 /** A deterministic, reproducible payload of the requested size. */
 function payloadFor(spec: BenchSpec): Uint8Array {
   return generatePayload(spec.payloadBytes, spec.pattern, spec.seed)
-}
-
-export async function probeBenchmark(spec: BenchSpec, now: () => number = defaultNow): Promise<Omit<BenchProbeResult, 'runId'>> {
-  validateSpec(spec)
-  const timerResolutionMs = measureTimerResolutionMs()
-  const config = spec.configs[0]
-  const blockSize = blockSizeBytes(config.w)
-  const blocks = blocksFor(spec.payloadBytes, config)
-  const bytesProcessed = blocks * blockSize
-
-  const payload = payloadFor(spec)
-  const src = new Uint8Array(bytesProcessed)
-  src.set(payload.subarray(0, Math.min(payload.length, src.length)))
-  const dst = new Uint8Array(bytesProcessed)
-  const key = benchmarkKey(config, spec.seed)
-  const schedule = expandKey(key, config).s
-
-  const context: TimedOpContext = {
-    w: config.w,
-    r: config.r,
-    src,
-    dst,
-    schedule,
-    key,
-    config,
-    isEncrypt: true,
-    includeSetup: spec.methodology === 'key-setup-included',
-  }
-
-  const calibration = calibrateBatch(context, spec.minSampleDurationMs, spec.maxOpsPerBatch, now)
-  const groups = spec.configs.length * (spec.target === 'both' ? 2 : 1)
-  const operations = (spec.warmupIterations + spec.measuredIterations) * groups
-  const estimatedTotalMs = (operations * calibration.nsPerOp) / 1e6
-
-  return {
-    estimatedTotalMs,
-    opsPerBatch: calibration.opsPerBatch,
-    nsPerOp: calibration.nsPerOp,
-    timerResolutionMs,
-    blocks,
-    bytesProcessed,
-  }
 }
 
 export async function runBenchmark(

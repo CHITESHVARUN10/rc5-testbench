@@ -478,7 +478,7 @@ describe('configuration and input validation', () => {
       expect.unreachable('expected the payload to be rejected')
     } catch (error) {
       expect(isRc5ErrorCode(error, 'payload-too-large')).toBe(true)
-      expect((error as Rc5Error).message).toContain('Benchmark Lab')
+      expect((error as Rc5Error).message).toContain('interactive limit')
     }
   })
 
