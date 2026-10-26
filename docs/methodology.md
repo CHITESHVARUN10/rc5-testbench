@@ -8,7 +8,8 @@ repository.
 1. A payload of the requested size is generated deterministically. The plaintext typed into the
    Simulator is never used for timing and never leaves the component.
 2. The key is expanded once. The per-operation figures therefore exclude key setup; it is measured
-   separately, over 200 expansions, after a warm-up pass of its own.
+   separately, in batches that grow until one spans at least a millisecond, after a warm-up pass of
+   its own.
 3. 100 warm-up operations run, then 150 samples are taken.
 4. Each sample times a batch of operations and divides by the batch size. The batch grows until it
    spans at least 1 ms, because a browser coarsens `performance.now()` and cannot resolve a single

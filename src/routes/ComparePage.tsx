@@ -198,6 +198,16 @@ export function ComparePage() {
               note="three picks from the table above"
             />
             <StackRow className="space-y-5">
+              {summary.mixedPayload ? (
+                <Notice tone="caution" title="Different message sizes">
+                  These rows were measured at different message sizes, so their times are not directly
+                  comparable.{' '}
+                  {summary.comparedCount === 1
+                    ? 'The picks below therefore come from the only row measured at'
+                    : `The picks below therefore come from the ${summary.comparedCount} rows measured at`}{' '}
+                  {summary.payloadBytes === null ? 'one size' : formatByteCount(summary.payloadBytes)}.
+                </Notice>
+              ) : null}
               <div className="grid gap-6 sm:grid-cols-3">
                 <Pick
                   label="Fastest to encrypt"
@@ -244,7 +254,11 @@ export function ComparePage() {
               <BarGroup
                 tableVisible
                 ariaLabel="Median encryption and decryption time per configuration"
-                summary="Each pair of bars is one configuration: encryption solid, decryption hatched. The same message size is used throughout, so the bars are directly comparable."
+                summary={
+                  summary.mixedPayload
+                    ? 'Each pair of bars is one configuration: encryption solid, decryption hatched. These rows were measured at different message sizes, printed under each group, so only rows of the same size can be compared.'
+                    : 'Each pair of bars is one configuration: encryption solid, decryption hatched. The same message size is used throughout, so the bars are directly comparable.'
+                }
                 yLabel="median per operation"
                 formatY={formatMicroTick}
                 categories={rows.map((row) => ({

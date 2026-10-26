@@ -85,3 +85,36 @@ describe('comparison summary', () => {
     expect(summary.notes).toHaveLength(0)
   })
 })
+
+describe('message sizes', () => {
+  it('takes the picks from the largest group measured at one size', () => {
+    const small = [
+      measurement({ w: 32, r: 8, b: 16 }, 40),
+      measurement({ w: 32, r: 12, b: 16 }, 60),
+      measurement({ w: 32, r: 16, b: 16 }, 80),
+    ].map((row) => ({ ...row, payloadBytes: 8 }))
+    const large = { ...measurement({ w: 32, r: 20, b: 16 }, 500), payloadBytes: 4096 }
+
+    const summary = summariseComparison([...small, large])
+    expect(summary.mixedPayload).toBe(true)
+    expect(summary.payloadBytes).toBe(8)
+    expect(summary.comparedCount).toBe(3)
+    expect(summary.fastest?.config.r).toBe(8)
+    expect(summary.strongest?.config.r).toBe(16)
+  })
+
+  it('breaks a tie towards the smaller payload', () => {
+    const a = { ...measurement({ w: 32, r: 12, b: 16 }, 100), payloadBytes: 64 }
+    const b = { ...measurement({ w: 32, r: 12, b: 16 }, 90), payloadBytes: 8 }
+    const summary = summariseComparison([a, b])
+    expect(summary.payloadBytes).toBe(8)
+    expect(summary.comparedCount).toBe(1)
+  })
+
+  it('reports a single size as comparable', () => {
+    const summary = summariseComparison([ref12, heavy20])
+    expect(summary.mixedPayload).toBe(false)
+    expect(summary.comparedCount).toBe(2)
+    expect(summary.payloadBytes).toBe(15)
+  })
+})

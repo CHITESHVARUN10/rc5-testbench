@@ -20,6 +20,12 @@ export interface ComparisonSummary {
   readonly balanced: Measurement | null
   /** Most rounds, then the longest key, then the fastest of those. */
   readonly strongest: Measurement | null
+  /** The message size the picks were taken at, or null when nothing is measured. */
+  readonly payloadBytes: number | null
+  /** How many rows share that message size. */
+  readonly comparedCount: number
+  /** True when the table mixes message sizes, so only one size could be compared. */
+  readonly mixedPayload: boolean
   readonly notes: readonly string[]
 }
 
@@ -44,15 +50,39 @@ function strongestOf(rows: readonly Measurement[]): Measurement | null {
 
 export function summariseComparison(rows: readonly Measurement[]): ComparisonSummary {
   if (rows.length === 0) {
-    return { fastest: null, balanced: null, strongest: null, notes: [] }
+    return {
+      fastest: null,
+      balanced: null,
+      strongest: null,
+      payloadBytes: null,
+      comparedCount: 0,
+      mixedPayload: false,
+      notes: [],
+    }
   }
 
-  const fastest = fastestOf(rows)
-  const atReference = rows.filter(
+  // A time taken over 15 bytes and a time taken over 1 KiB are not two answers to one question, so
+  // the picks are drawn from the largest group measured at a single message size. Ties go to the
+  // smallest payload, which is the cheapest group to reproduce.
+  const bySize = new Map<number, Measurement[]>()
+  for (const row of rows) {
+    const group = bySize.get(row.payloadBytes)
+    if (group) group.push(row)
+    else bySize.set(row.payloadBytes, [row])
+  }
+  const [compared] = [...bySize.entries()]
+    .sort((a, b) => b[1].length - a[1].length || a[0] - b[0])
+    .map(([, group]) => group)
+
+  const mixedPayload = bySize.size > 1
+  const payloadBytes = compared[0]?.payloadBytes ?? null
+
+  const fastest = fastestOf(compared)
+  const atReference = compared.filter(
     (row) => row.config.r >= REFERENCE_ROUNDS && row.config.b >= REFERENCE_KEY_BYTES,
   )
   const balanced = fastestOf(atReference)
-  const strongest = strongestOf(rows)
+  const strongest = strongestOf(compared)
 
   const notes: string[] = []
 
@@ -78,5 +108,13 @@ export function summariseComparison(rows: readonly Measurement[]): ComparisonSum
     )
   }
 
-  return { fastest, balanced, strongest, notes }
+  return {
+    fastest,
+    balanced,
+    strongest,
+    payloadBytes,
+    comparedCount: compared.length,
+    mixedPayload,
+    notes,
+  }
 }
